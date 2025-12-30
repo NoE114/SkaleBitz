@@ -9,9 +9,6 @@ const PORT = ENV_PORT;
 
 const start = async () => {
   try {
-    if (!PORT) {
-      throw new Error("PORT is required");
-    }
     if (!MONGO_URI) {
       throw new Error("MONGO_URI is required");
     }

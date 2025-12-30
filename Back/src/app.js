@@ -19,9 +19,7 @@ const normalizeOrigin = (value) => {
   try {
     return new URL(value).origin;
   } catch {
-    throw new Error(
-      `FRONTEND_BASE_URL must be a valid URL (received: ${value})`
-    );
+    throw new Error(`Invalid URL format (received: ${value})`);
   }
 };
 
