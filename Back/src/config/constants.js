@@ -25,10 +25,10 @@ const requireBaseUrl = (value, name) => {
 };
 
 export const buildBackendUrl = (pathname) =>
-  new URL(pathname, `${requireBaseUrl(APP_BASE_URL, "APP_BASE_URL")}/`).toString();
+  new URL(pathname, requireBaseUrl(APP_BASE_URL, "APP_BASE_URL")).toString();
 
 export const buildFrontendUrl = (pathname) =>
   new URL(
     pathname,
-    `${requireBaseUrl(FRONTEND_BASE_URL, "FRONTEND_BASE_URL")}/`
+    requireBaseUrl(FRONTEND_BASE_URL, "FRONTEND_BASE_URL")
   ).toString();

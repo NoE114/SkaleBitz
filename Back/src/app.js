@@ -19,6 +19,8 @@ const normalizeOrigin = (value) => {
   try {
     return new URL(value).origin;
   } catch {
+    // Preserve backward compatibility but surface misconfiguration for debugging.
+    console.warn(`Invalid FRONTEND_BASE_URL provided: ${value}`);
     return value.replace(/\/+$/, "");
   }
 };
