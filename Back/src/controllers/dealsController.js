@@ -23,6 +23,20 @@ const sanitizeUser = (user) => ({
   verified: user.verified,
 });
 
+const resolveFacilitySize = (deal) => {
+  const raw = Number(deal?.facilitySize ?? deal?.amount ?? 10000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 10000;
+};
+
+const buildUtilizationMap = async (dealIds, Investment) => {
+  if (!Array.isArray(dealIds) || dealIds.length === 0) return new Map();
+  const utilization = await Investment.aggregate([
+    { $match: { dealId: { $in: dealIds } } },
+    { $group: { _id: "$dealId", total: { $sum: "$amount" } } },
+  ]);
+  return new Map(utilization.map((entry) => [String(entry._id), entry.total || 0]));
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const cadenceToDays = (cadence) => {
   const normalized = (cadence || "").toLowerCase();
@@ -158,8 +172,25 @@ const computePerformanceMetrics = ({ repayments, cadence, startDate, totalInvest
 
 export const listDeals = async (_req, res) => {
   const Deal = getDealModel();
-  const deals = await Deal.find({ verified: true }).sort({ createdAt: -1 });
-  res.json({ deals: deals.map(ensureTenorMonths) });
+    const Investment = getInvestmentModel();
+  const deals = await Deal.find({ verified: true }).sort({ createdAt: -1 }).lean();
+  const utilizationMap = await buildUtilizationMap(
+    deals.map((deal) => deal._id),
+    Investment
+  );
+
+  res.json({
+    deals: deals.map((deal) => {
+      const facilitySize = resolveFacilitySize(deal);
+      const utilizedAmount = utilizationMap.get(String(deal._id)) || 0;
+      return ensureTenorMonths({
+        ...deal,
+        facilitySize,
+        utilizedAmount,
+        remainingCapacity: Math.max(0, facilitySize - utilizedAmount),
+      });
+    }),
+  });
 };
 
 export const getDeal = async (req, res) => {
@@ -174,6 +205,8 @@ export const getDeal = async (req, res) => {
   const investments = await Investment.find({ dealId }).sort({ createdAt: 1 }).lean();
   const investmentIds = investments.map((inv) => inv._id);
   const utilizedAmount = investments.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+  const facilitySize = resolveFacilitySize(deal);
+  const remainingCapacity = Math.max(0, facilitySize - utilizedAmount);
 
   let transactions = [];
   if (investmentIds.length) {
@@ -199,7 +232,7 @@ export const getDeal = async (req, res) => {
     cadence: deal.repaymentCadence,
     startDate,
     totalInvested: utilizedAmount,
-    facilitySize: deal.amount,
+    facilitySize,
   });
 
     const dealPayload = ensureTenorMonths(deal);
@@ -207,7 +240,9 @@ export const getDeal = async (req, res) => {
   res.json({
     deal: {
       ...dealPayload,
+      facilitySize,
       utilizedAmount,
+      remainingCapacity,
       inflows,
       outflows,
       cashflows,
@@ -360,6 +395,7 @@ export const createDeal = async (req, res) => {
     status,
     location,
     tenorMonths,
+    facilitySize: facilitySizeInput,
     risk,
     liveVolume,
     cardVolume,
@@ -389,10 +425,18 @@ export const createDeal = async (req, res) => {
     }
   }
 
+    const normalizedAmount = Number.isFinite(Number(amount)) ? Number(amount) : 0;
+  const normalizedFacilitySize = Number.isFinite(Number(facilitySizeInput))
+    ? Number(facilitySizeInput)
+    : normalizedAmount || 10000;
+  const finalAmount = normalizedAmount || normalizedFacilitySize;
+
   const deal = await Deal.create({
     name: businessName || "MSME Deal",
     sector: sector || "MSME onboarding",
-    amount: amount ?? 0,
+    amount: finalAmount,
+    facilitySize: normalizedFacilitySize,
+    utilizedAmount: 0,
     yieldPct: yieldPct ?? 0,
     status: status || "Active",
     location: location || country || registeredAddress || "",

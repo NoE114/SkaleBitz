@@ -13,6 +13,8 @@ const dealSchema = new mongoose.Schema(
     website: { type: String, trim: true },
     country: { type: String, trim: true },
     repaymentCadence: { type: String, trim: true },
+    facilitySize: { type: Number, default: 10000 },
+    utilizedAmount: { type: Number, default: 0 },
     amount: { type: Number, required: true },
     yieldPct: { type: Number, required: true },
     status: { type: String, default: "Active" },

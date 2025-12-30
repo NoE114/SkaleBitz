@@ -10,8 +10,24 @@ const getInvestmentModel = () => createInvestmentModel(getDealsConnection());
 const getTransactionModel = () => createTransactionModel(getDealsConnection());
 const ACTIVE_STATUS = "Active";
 
+const resolveFacilitySize = (deal) => {
+  const raw = Number(deal?.facilitySize ?? deal?.amount ?? 10000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 10000;
+};
+
+const buildUtilizationMap = async (dealIds, Investment) => {
+  if (!Array.isArray(dealIds) || dealIds.length === 0) return new Map();
+  const utilization = await Investment.aggregate([
+    { $match: { dealId: { $in: dealIds } } },
+    { $group: { _id: "$dealId", total: { $sum: "$amount" } } },
+  ]);
+  return new Map(utilization.map((entry) => [String(entry._id), entry.total || 0]));
+};
+
 export const getOverviewStats = async (_req, res) => {
   const Deal = getDealModel();
+  const Investment = getInvestmentModel();
+  const facilityField = { $ifNull: ["$facilitySize", { $ifNull: ["$amount", 10000] }] };
 
   const [summary] = await Deal.aggregate([
     {
@@ -24,7 +40,7 @@ export const getOverviewStats = async (_req, res) => {
           $sum: {
             $cond: [
               { $eq: [{ $toLower: { $ifNull: ["$status", ""] } }, "active"] },
-              "$amount",
+              facilityField,
               0,
             ],
           },
@@ -48,7 +64,7 @@ export const getOverviewStats = async (_req, res) => {
           },
         },
         liveVolume: {
-          $sum: { $ifNull: ["$liveVolume", "$amount"] },
+          $sum: { $ifNull: ["$liveVolume", facilityField] },
         },
         cardVolume: { $sum: { $ifNull: ["$cardVolume", 0] } },
         bankVolume: { $sum: { $ifNull: ["$bankVolume", 0] } },
@@ -78,18 +94,34 @@ export const getOverviewStats = async (_req, res) => {
     status: { $regex: /^active$/i },
     verified: true,
   })
-    .sort({ yieldPct: -1, amount: -1, createdAt: -1 })
+    .sort({ yieldPct: -1, facilitySize: -1, amount: -1, createdAt: -1 })
     .limit(3)
-    .select("name sector amount yieldPct status location tenorMonths risk liveVolume");
+    .select("name sector amount facilitySize yieldPct status location tenorMonths risk liveVolume")
+    .lean();
 
   if (featuredDeals.length === 0) {
     featuredDeals = await Deal.find({ verified: true })
       .sort({ createdAt: -1 })
       .limit(3)
-      .select("name sector amount yieldPct status location tenorMonths risk liveVolume");
+      .select("name sector amount facilitySize yieldPct status location tenorMonths risk liveVolume")
+      .lean();
   }
 
-  featuredDeals = featuredDeals.map((deal) => ensureTenorMonths(deal));
+    const utilizationMap = await buildUtilizationMap(
+    featuredDeals.map((deal) => deal._id),
+    Investment
+  );
+
+  featuredDeals = featuredDeals.map((deal) => {
+    const facilitySize = resolveFacilitySize(deal);
+    const utilizedAmount = utilizationMap.get(String(deal._id)) || 0;
+    return ensureTenorMonths({
+      ...deal,
+      facilitySize,
+      utilizedAmount,
+      remainingCapacity: Math.max(0, facilitySize - utilizedAmount),
+    });
+  });
 
   res.json({ ...stats, featuredDeals });
 };
@@ -278,7 +310,25 @@ export const getInvestorDeals = async (req, res, next) => {
       (a, b) => new Date(b.lastAllocationAt || 0) - new Date(a.lastAllocationAt || 0)
     );
 
-    res.json({ deals });
+        const utilizationMap = await buildUtilizationMap(
+      deals
+        .map((deal) => (deal.id && mongoose.Types.ObjectId.isValid(deal.id) ? new mongoose.Types.ObjectId(deal.id) : null))
+        .filter(Boolean),
+      Investment
+    );
+
+    const enrichedDeals = deals.map((deal) => {
+      const facilitySize = resolveFacilitySize(deal);
+      const utilizedAmount = utilizationMap.get(String(deal.id)) || 0;
+      return {
+        ...deal,
+        facilitySize,
+        utilizedAmount,
+        remainingCapacity: Math.max(0, facilitySize - utilizedAmount),
+      };
+    });
+
+    res.json({ deals: enrichedDeals });
   } catch (err) {
     next(err);
   }

@@ -19,6 +19,22 @@ const logRollbackFailure = (message, error) => {
   console.error(message, error);
 };
 
+const resolveFacilitySize = (deal) => {
+  const raw = Number(deal?.facilitySize ?? deal?.amount ?? 10000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 10000;
+};
+
+const getUtilizedAmount = async (Investment, dealId, session) => {
+  if (!dealId) return 0;
+  const pipeline = [
+    { $match: { dealId } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ];
+  const agg = session ? Investment.aggregate(pipeline).session(session) : Investment.aggregate(pipeline);
+  const [result] = await agg;
+  return result?.total || 0;
+};
+
 const createInvestmentWithoutSession = async (
   { dealId, investorId, amount, status, toUserId: requestedToUserId },
   Investment,
@@ -39,6 +55,21 @@ const createInvestmentWithoutSession = async (
   const deal = await Deal.findOne({ _id: dealId, verified: true });
   if (!deal) {
     throw createError(404, "Deal not found");
+  }
+
+  const facilitySize = resolveFacilitySize(deal);
+  const currentUtilized = await getUtilizedAmount(Investment, deal._id);
+  await Deal.updateOne({ _id: deal._id }, { $set: { utilizedAmount: currentUtilized } });
+  const capacityResult = await Deal.updateOne(
+    {
+      _id: deal._id,
+      verified: true,
+      $expr: { $lte: [{ $add: ["$utilizedAmount", amount] }, { $literal: facilitySize }] },
+    },
+    { $inc: { utilizedAmount: amount } }
+  );
+  if (!capacityResult.modifiedCount) {
+    throw createError(400, "Investment exceeds facility size");
   }
 
   const toUserId = requestedToUserId || deal.msmeUserId || investorId;
@@ -142,6 +173,25 @@ export const createInvestmentWithTransaction = async ({
       );
       if (!deal) {
         throw createError(404, "Deal not found");
+      }
+           const facilitySize = resolveFacilitySize(deal);
+      const currentUtilized = await getUtilizedAmount(Investment, deal._id, session);
+      await Deal.updateOne(
+        { _id: deal._id },
+        { $set: { utilizedAmount: currentUtilized } },
+        { session }
+      );
+      const capacityResult = await Deal.updateOne(
+        {
+          _id: deal._id,
+          verified: true,
+          $expr: { $lte: [{ $add: ["$utilizedAmount", amount] }, { $literal: facilitySize }] },
+        },
+        { $inc: { utilizedAmount: amount } },
+        { session }
+      );
+      if (!capacityResult.modifiedCount) {
+        throw createError(400, "Investment exceeds facility size");
       }
 
       const toUserId = requestedToUserId || deal.msmeUserId || investorId;
