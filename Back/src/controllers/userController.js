@@ -1,7 +1,11 @@
 import crypto from "crypto";
 import createError from "http-errors";
 import User from "../models/User.js";
-import { APP_BASE_URL, FRONTEND_BASE_URL } from "../config/constants.js";
+import {
+  FRONTEND_BASE_URL,
+  buildBackendUrl,
+  buildFrontendUrl,
+} from "../config/constants.js";
 import { sendEmailChangeVerification } from "../utils/mailer.js";
 
 const makeToken = () => crypto.randomBytes(32).toString("hex");
@@ -96,7 +100,9 @@ export const updateProfile = async (req, res) => {
     user.emailChangeTokenExpires = new Date(Date.now() + 60 * 60 * 1000);
     message = "Check both email inboxes to confirm the change.";
 
-    const verifyLink = `${APP_BASE_URL}/api/users/verify-email-change?token=${token}`;
+    const verifyLink = buildBackendUrl(
+      `/api/users/verify-email-change?token=${token}`
+    );
     await sendEmailChangeVerification(user.email, desiredEmail, verifyLink);
   }
 
@@ -129,7 +135,7 @@ export const verifyEmailChange = async (req, res) => {
   await user.save();
 
   if (FRONTEND_BASE_URL) {
-    return res.redirect(`${FRONTEND_BASE_URL}/login?email-changed=1`);
+    return res.redirect(buildFrontendUrl("/login?email-changed=1"));
   }
 
   return res.json({ message: "Email updated successfully" });

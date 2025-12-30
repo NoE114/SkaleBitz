@@ -1,4 +1,4 @@
-import api from "./api";
+import api from "../api/client";
 import { withRequestLock } from "./requestLock";
 
 export const allocateInvestment = async (dealId, amount) => {

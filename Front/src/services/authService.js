@@ -1,4 +1,4 @@
-import api from "./api";
+import api from "../api/client";
 
 export const signup = async (payload) => {
   const { data } = await api.post("/api/auth/signup", payload);

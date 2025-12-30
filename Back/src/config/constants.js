@@ -8,8 +8,31 @@ export const SMTP_USER = process.env.SMTP_USER || "";
 export const SMTP_PASS = process.env.SMTP_PASS || "";
 export const MAIL_FROM = process.env.MAIL_FROM || "";
 
-// Base URL of your backend (used to build verification link)
-export const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:4000";
+export const trimTrailingSlash = (value = "") => value.replace(/\/+$/, "");
 
-// Optional: frontend redirect after verify (if you want to redirect)
-export const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "";
+// Base URLs are provided entirely by environment variables
+export const APP_BASE_URL = trimTrailingSlash(process.env.APP_BASE_URL || "");
+export const FRONTEND_BASE_URL = trimTrailingSlash(
+  process.env.FRONTEND_BASE_URL || ""
+);
+const rawPort = process.env.PORT;
+if (!rawPort) {
+  throw new Error("PORT is required");
+}
+export const PORT = Number(rawPort);
+
+if (!APP_BASE_URL) {
+  throw new Error("APP_BASE_URL is required");
+}
+if (!FRONTEND_BASE_URL) {
+  throw new Error("FRONTEND_BASE_URL is required");
+}
+if (!Number.isFinite(PORT)) {
+  throw new Error("PORT must be a number");
+}
+
+export const buildBackendUrl = (pathname) =>
+  new URL(pathname, APP_BASE_URL).toString();
+
+export const buildFrontendUrl = (pathname) =>
+  new URL(pathname, FRONTEND_BASE_URL).toString();

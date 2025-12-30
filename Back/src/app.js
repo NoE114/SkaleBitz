@@ -10,11 +10,42 @@ import userRoutes from "./routes/user.js";
 import dealRoutes from "./routes/deals.js";
 import statsRoutes from "./routes/stats.js";
 import errorHandler from "./middleware/errorHandler.js";
+import { FRONTEND_BASE_URL, trimTrailingSlash } from "./config/constants.js";
 
 const app = express();
 
+const normalizeOrigin = (value) => {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch (error) {
+    throw new Error(
+      `Invalid URL format (received: ${value}): ${error.message}`
+    );
+  }
+};
+
+const allowedOrigins = [normalizeOrigin(FRONTEND_BASE_URL)].filter(Boolean);
+const localhostRegex = /^http:\/\/localhost(?::\d+)?$/i;
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const normalizedOrigin = trimTrailingSlash(origin);
+    if (localhostRegex.test(normalizedOrigin)) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+};
+
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(morgan("dev"));
 app.use(compression());
 app.use(express.json({ limit: "3mb" }));
@@ -53,6 +84,7 @@ app.use("/api/stats", cacheAndDedupe, heavyLimiter, statsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 
+app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 app.use(errorHandler);
