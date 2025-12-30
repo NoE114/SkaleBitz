@@ -39,12 +39,7 @@ export default function Landing() {
           </div>
           FintechOS
         </div>
-        <nav className="hidden items-center gap-6 text-sm text-[#4B5563] md:flex">
-          <a className="transition hover:text-[#1F6FEB]" href="#market">Marketplace</a>
-          <a className="transition hover:text-[#1F6FEB]" href="#categories">Strategies</a>
-          <a className="transition hover:text-[#1F6FEB]" href="#trust">Trust & security</a>
-          <a className="transition hover:text-[#1F6FEB]" href="#cta">Get started</a>
-        </nav>
+        
         <div className="flex items-center gap-3">
           <Link className="hidden rounded-full px-4 py-2 text-sm font-semibold text-[#1F2937] transition hover:text-[#1F6FEB] md:inline-block" to="/login">
             Log in
@@ -200,38 +195,6 @@ export default function Landing() {
                   <button className="inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#1F2937] transition hover:border-[#CBD5E1]">
                     View memo
                   </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Categories like Upwork/Fiverr tiles */}
-        <section id="categories" className="mt-16 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0EA5E9]">Strategies</p>
-              <h2 className="text-2xl font-semibold text-[#0F172A]">Pick a lane, stay diversified</h2>
-              <p className="text-sm text-[#4B5563]">Pre-bundled strategies to meet your risk/tenor goals.</p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {categories.map((cat) => (
-              <div key={cat.title} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-md shadow-[#E0E7FF]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#0F172A]">{cat.title}</h3>
-                    <p className="text-sm text-[#4B5563]">{cat.desc}</p>
-                  </div>
-                  <Briefcase className="text-[#1F6FEB]" size={20} />
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#4B5563]">
-                  {cat.chips.map((c) => (
-                    <span key={c} className="rounded-full bg-[#F8FAFC] px-3 py-1 border border-[#E5E7EB]">
-                      {c}
-                    </span>
-                  ))}
                 </div>
               </div>
             ))}
