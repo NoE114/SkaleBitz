@@ -58,12 +58,10 @@ export default function Register() {
     {
       value: 'investor',
       title: 'Investor account',
-      description: 'Discover vetted MSME opportunities and track returns in one place.',
     },
     {
       value: 'msme',
       title: 'MSME account',
-      description: 'Raise working capital, manage disbursements, and stay funder-ready.',
     },
   ];
 
@@ -143,7 +141,7 @@ export default function Register() {
                         type="button"
                         key={option.value}
                         onClick={() => handleAccountType(option.value)}
-                        className={`rounded-2xl border px-4 py-3 text-left transition ${
+                        className={`rounded-2xl border px-4 py-2 text-left transition ${
                           isActive
                             ? 'border-[#1F6FEB] bg-[#E6F0FF] shadow-sm shadow-[#1F6FEB33]'
                             : 'border-[#E5E7EB] bg-white hover:border-[#1F6FEB]'
