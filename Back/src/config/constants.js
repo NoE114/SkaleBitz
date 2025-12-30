@@ -15,7 +15,11 @@ export const APP_BASE_URL = trimTrailingSlash(process.env.APP_BASE_URL || "");
 export const FRONTEND_BASE_URL = trimTrailingSlash(
   process.env.FRONTEND_BASE_URL || ""
 );
-export const PORT = Number(process.env.PORT);
+const rawPort = process.env.PORT;
+if (!rawPort) {
+  throw new Error("PORT is required");
+}
+export const PORT = Number(rawPort);
 
 if (!APP_BASE_URL) {
   throw new Error("APP_BASE_URL is required");
@@ -24,7 +28,7 @@ if (!FRONTEND_BASE_URL) {
   throw new Error("FRONTEND_BASE_URL is required");
 }
 if (!Number.isFinite(PORT)) {
-  throw new Error("PORT is required");
+  throw new Error("PORT must be a number");
 }
 
 export const buildBackendUrl = (pathname) =>

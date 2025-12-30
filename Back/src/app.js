@@ -18,8 +18,10 @@ const normalizeOrigin = (value) => {
   if (!value) return null;
   try {
     return new URL(value).origin;
-  } catch {
-    throw new Error(`Invalid URL format (received: ${value})`);
+  } catch (error) {
+    throw new Error(
+      `Invalid URL format (received: ${value}): ${error.message}`
+    );
   }
 };
 
