@@ -4,7 +4,13 @@ import crypto from "crypto";
 import createError from "http-errors";
 import User from "../models/User.js";
 import { signupSchema, signinSchema } from "../validation/authSchemas.js";
-import { JWT_SECRET, JWT_EXPIRES_IN, APP_BASE_URL, FRONTEND_BASE_URL } from "../config/constants.js";
+import {
+  JWT_SECRET,
+  JWT_EXPIRES_IN,
+  FRONTEND_BASE_URL,
+  buildBackendUrl,
+  buildFrontendUrl,
+} from "../config/constants.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../utils/mailer.js";
 
 const signToken = (user) =>
@@ -36,7 +42,7 @@ export const signup = async (req, res) => {
     verificationTokenExpires: tokenExpiry,
   });
 
-  const verifyLink = `${APP_BASE_URL}/api/auth/verify?token=${token}`;
+  const verifyLink = buildBackendUrl(`/api/auth/verify?token=${token}`);
   await sendVerificationEmail(email, verifyLink);
 
   res.status(201).json({
@@ -91,7 +97,7 @@ export const verifyEmail = async (req, res) => {
 
   // Redirect only if you actually serve the page at that path.
   if (FRONTEND_BASE_URL) {
-    return res.redirect(`${FRONTEND_BASE_URL}/login-registration.html?verified=1`);
+    return res.redirect(buildFrontendUrl("/login?verified=1"));
   }
 
   return res.json({ message: "Email verified. You can now sign in." });
@@ -112,7 +118,7 @@ export const resendVerification = async (req, res) => {
   user.verificationTokenExpires = tokenExpiry;
   await user.save();
 
-  const verifyLink = `${APP_BASE_URL}/api/auth/verify?token=${token}`;
+  const verifyLink = buildBackendUrl(`/api/auth/verify?token=${token}`);
   await sendVerificationEmail(email, verifyLink);
 
   res.json({ message: "Verification email sent" });
@@ -142,8 +148,7 @@ export const requestPasswordReset = async (req, res) => {
   user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
   await user.save();
 
-  const resetLinkBase = (FRONTEND_BASE_URL || "http://localhost:5173").replace(/\/$/, "");
-  const resetLink = `${resetLinkBase}/reset/confirm?token=${token}`;
+  const resetLink = buildFrontendUrl(`/reset/confirm?token=${token}`);
   await sendPasswordResetEmail(email, resetLink);
 
   res.json({ message: "If that account exists, we've emailed reset instructions." });

@@ -1,7 +1,18 @@
 import axios from "axios";
 
+const resolveBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, "");
+  if (envUrl) {
+    return envUrl;
+  }
+  if (import.meta.env.DEV) {
+    return "http://localhost:4000";
+  }
+  throw new Error("VITE_API_URL is required");
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000",
+  baseURL: resolveBaseURL(),
   headers: {
     "Content-Type": "application/json",
   },

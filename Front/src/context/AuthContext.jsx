@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useState } from "react";
-import { clearAuthToken, setAuthToken } from "../services/api";
+import { clearAuthToken, setAuthToken } from "../api/client";
 import { deleteAccount as deleteAccountRequest } from "../services/authService";
 import { fetchProfile } from "../services/userService";
 
