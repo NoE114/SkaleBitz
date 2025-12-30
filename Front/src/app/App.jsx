@@ -19,6 +19,8 @@ import Support from '../pages/Support';
 import ResetPassword from '../pages/ResetPassword';
 import Footer from '../components/layout/Footer';
 import Navbar from '../components/layout/Navbar';
+import MsmeDashboard from '../pages/MsmeDashboard';
+import ProfilePage from '../pages/ProfilePage';
 
 function App() {
   return (
@@ -28,6 +30,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/dashboard" element={<InvestorDashboard />} />
         <Route path="/deals" element={<Deals />} />
         <Route path="/deals/:dealId" element={<InvestorDealDetail />} />
@@ -36,7 +39,8 @@ function App() {
         <Route path="/risk-reports" element={<RiskReports />} />
         <Route path="/ops" element={<OpsQueue />} />
         <Route path="/ops/tasks/:taskId" element={<OpsTaskDetail />} />
-        <Route path="/onboarding/msme" element={<MSMEWizard />} />
+        <Route path="/msme/dashboard" element={<MsmeDashboard />} />
+        <Route path="/msme/wizard" element={<MSMEWizard />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
