@@ -1,6 +1,7 @@
 import createError from "http-errors";
 import { getDealsConnection } from "../db/dealsConnection.js";
 import { createDealModel } from "../models/Deal.js";
+import User from "../models/User.js";
 
 const getDealModel = () => createDealModel(getDealsConnection());
 
@@ -45,6 +46,17 @@ export const createDeal = async (req, res) => {
     doc3AddressProof,
   } = req.body;
 
+  let userRecord = null;
+  if (req.user?.id) {
+    userRecord = await User.findById(req.user.id);
+    if (!userRecord) {
+      throw createError(404, "User not found");
+    }
+    if (userRecord.dealId) {
+      throw createError(409, "User already has a linked deal");
+    }
+  }
+
   const deal = await Deal.create({
     name: businessName || "MSME Deal",
     sector: sector || "MSME onboarding",
@@ -76,6 +88,24 @@ export const createDeal = async (req, res) => {
     },
     verified: true,
   });
+
+  const rollbackDeal = async () => {
+    try {
+      await Deal.deleteOne({ _id: deal._id });
+    } catch (rollbackErr) {
+      console.error("Failed to rollback deal creation", rollbackErr);
+    }
+  };
+
+  if (userRecord) {
+    try {
+      userRecord.dealId = deal._id;
+      await userRecord.save();
+    } catch (err) {
+      await rollbackDeal();
+      throw err;
+    }
+  }
 
   res.status(201).json({ deal });
 };

@@ -64,7 +64,9 @@ export const signin = async (req, res) => {
       name: user.name,
       about: user.about,
       avatarUrl: user.avatarUrl,
+      balance: user.balance ?? 0,
       accountType: user.accountType,
+      dealId: user.dealId,
     },
     token,
   });
