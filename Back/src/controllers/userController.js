@@ -17,11 +17,28 @@ const sanitizeUser = (user) => ({
   verified: user.verified,
 });
 
+const sanitizePublicUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  about: user.about,
+  avatarUrl: user.avatarUrl,
+  accountType: user.accountType,
+  verified: user.verified,
+  createdAt: user.createdAt,
+});
+
 export const getProfile = async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) throw createError(404, "User not found");
 
   res.json({ user: sanitizeUser(user) });
+};
+
+export const getProfileById = async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) throw createError(404, "User not found");
+
+  res.json({ user: sanitizePublicUser(user) });
 };
 
 export const updateProfile = async (req, res) => {
